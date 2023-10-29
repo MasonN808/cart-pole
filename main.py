@@ -1,7 +1,6 @@
 import json
 import pickle
 
-import gym
 from cartpole_env import CartPoleEnv
 import numpy as np
 import math
@@ -16,63 +15,6 @@ class Parameters():
         self.alpha = alpha
         self.M = M
         self.max_steps = max_steps
-
-
-class CartPoleWrapper(gym.Wrapper):
-    def __init__(self, env):
-        super().__init__(env)
-        self.steps = 0
-        self.obs = {
-            "x": 0,
-            "vx": 0,
-            "w": 0,
-            "vw": 0
-        }
-        # Define a dictionary observation space
-        self.observation_space = gym.spaces.Dict({
-            "x": gym.spaces.Box(low=-2.4, high=2.4, shape=(1,)),
-            "vx": gym.spaces.Box(low=-float('inf'), high=float('inf'), shape=(1,)),
-            "w": gym.spaces.Box(low=-math.pi/15, high=math.pi/15, shape=(1,)),
-            "vw": gym.spaces.Box(low=-float('inf'), high=float('inf'), shape=(1,))
-        })
-
-    def reset(self, **kwargs):
-        self.steps = 0  # Reset step count
-        observation = self.env.reset(**kwargs)
-        return self._convert_to_dict_observation(observation[0])
-
-    def step(self, action):
-        if action == -10.0:  # Left
-            action = 0
-        elif action == 10.0:  # Right
-            action = 1
-        observation, reward, done, _, _ = self.env.step(action)
-
-        # Reset the done condition
-        if self.obs["w"] < -math.pi/15 or self.obs["w"] > math.pi/15:
-            # Pole fell
-            done=True
-        elif self.obs["x"] < -2.4 or self.obs["x"] > 2.4:
-            # Cart reached border of env
-            done=True
-        elif self.steps > 500:
-            # From timeout
-            done=True
-        else:
-            done=False
-
-        observation = self._convert_to_dict_observation(observation)
-        self.obs = observation
-        self.steps += 1  # Increase step count
-        return observation, reward, done
-    
-    def _convert_to_dict_observation(self, observation):
-        return {
-            "x": observation[0],
-            "vx": observation[1],
-            "w": observation[2],
-            "vw": observation[3]
-        }
 
     
 def policy_search(theta: np.array, nPerturbations: int, sigma: float, n_episodes: int, alpha: float, M: int, max_steps: int):
@@ -100,8 +42,6 @@ def policy_search(theta: np.array, nPerturbations: int, sigma: float, n_episodes
 def estimate_J(theta: np.array, n_episodes: int, M: int):
     # Initialize environment
     env = CartPoleEnv()
-    # env = gym.make('CartPole-v1')  # Use gym's CartPole environment
-    # env = CartPoleWrapper(env)
     returns = []
     for _ in range(0, n_episodes):
         env.reset()
